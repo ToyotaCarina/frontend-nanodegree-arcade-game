@@ -5,27 +5,56 @@ const
   sectionX = 101,
   playerInitPos = [2, 5];
 
-// var GameElements = function() {
-//
-// }
-//
-// Enemy.prototype.render = function() {
-//   ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
-// };
+var GameElement = function(sprite) {
+  this.sprite = sprite;
+}
+
+// class for elements that are "block based", such as rock, player.
+// Position of these elements based on row and column.
+var GameElementBlockType = function(sprite, col, row) {
+  GameElement.call(this, sprite);
+  this.col = col;
+  this.row = row;
+}
+
+GameElementBlockType.prototype = Object.create(GameElement.prototype);
+GameElementBlockType.prototype.constructor = GameElementBlockType;
+
+Object.defineProperties(GameElementBlockType.prototype, {
+  'x': {
+    get: function() {
+      return this.col * sectionX;
+    }
+  },
+  'y': {
+    get: function() {
+      return (this.row - 0.5) * sectionY;
+    }
+  }
+});
+
+// Draw the enemy on the screen, required method for game
+GameElement.prototype.render = function() {
+  ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
+};
 
 // Enemies our player must avoid
 var Enemy = function() {
   // Variables applied to each of our instances go here,
   // we've provided one for you to get started
-
+  GameElement.call(this, 'images/enemy-bug.png');
   // The image/sprite for our enemies, this uses
   // a helper we've provided to easily load images
-  this.sprite = 'images/enemy-bug.png';
+  // this.sprite = 'images/enemy-bug.png';
   this.startPosX = sectionY * -1;
   this.x = this.startPosX;
   this.randomizePosition();
   this.randomizeSpeed();
 };
+
+// Enemy.prototype = GameElement;
+Enemy.prototype = Object.create(GameElement.prototype);
+Enemy.prototype.constructor = Enemy;
 
 Object.defineProperty(Enemy.prototype, 'y', {
   get: function() {
@@ -50,10 +79,7 @@ Enemy.prototype.update = function(dt) {
   // all computers.
 };
 
-// Draw the enemy on the screen, required method for game
-Enemy.prototype.render = function() {
-  ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
-};
+
 
 Enemy.prototype.randomizeSpeed = function() {
   // Enemy speed is a random number from 100 to 500
@@ -83,55 +109,46 @@ Enemy.prototype.moveToStart = function() {
 // This class requires an update(), render() and
 // a handleInput() method.
 var Player = function() {
-  this.sprite = 'images/char-boy.png';
+  GameElementBlockType.call(this, 'images/char-boy.png');
   this.resetPlayer();
 };
 
-Object.defineProperties(Player.prototype, {
-  'x': {
-    get: function() {
-      return this.col * sectionX;
-    }
-  },
-  'y': {
-    get: function() {
-      return (this.row - 0.5) * sectionY;
-    }
-  }
-});
+Player.prototype = Object.create(GameElementBlockType.prototype);
+Player.prototype.constructor = Player;
 
 Player.prototype.update = function(dt) {
 
 };
-
-Player.prototype.render = function() {
-  ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
-}
 
 Player.prototype.resetPlayer = function() {
   this.col = playerInitPos[0];
   this.row = playerInitPos[1];
 }
 
+Player.prototype.rockCollision = function(col, row) {
+  return (rock.visible) && (rock.row === row) && (rock.col === col);
+}
+
 Player.prototype.movePlayer = function(direction) {
   switch (direction) {
     case 'left':
-      if (this.col > 0) {
+      if (this.col > 0 && !(this.rockCollision(this.col - 1, this.row))) {
         this.col -= 1;
       }
+      Engine.update(0);
       break;
     case 'right':
-      if (this.col < numCols - 1) {
+      if (this.col < numCols - 1 && !(this.rockCollision(this.col + 1, this.row))) {
         this.col += 1;
       }
       break;
     case 'up':
-      if (this.row > 0) {
+      if (this.row > 0 && !(this.rockCollision(this.col, this.row - 1))) {
         this.row -= 1;
       }
       break;
     case 'down':
-      if (this.row < numCols) {
+      if (this.row < numCols && !(this.rockCollision(this.col, this.row + 1))) {
         this.row += 1;
       }
       break;
@@ -143,6 +160,27 @@ Player.prototype.handleInput = function(direction) {
   if (this.row === 0) {
     this.resetPlayer();
     game.addPoints(100);
+    rock.generate();
+  }
+};
+
+var Rock = function() {
+  GameElementBlockType.call(this, 'images/Rock.png');
+  this.generate();
+};
+
+Rock.prototype = Object.create(GameElementBlockType.prototype);
+Rock.prototype.constructor = Rock;
+
+Rock.prototype.generate = function() {
+  this.visible = Math.random() >= 0.5;
+  this.col = Math.floor(Math.random() * 4) + 0;
+  this.row = 0; //Math.floor(Math.random() * 3) + 1;
+};
+
+Rock.prototype.render = function() {
+  if (this.visible) {
+    GameElementBlockType.prototype.render.call(this);
   }
 };
 
@@ -173,7 +211,7 @@ Game.prototype.addPoints = function(pointValue) {
 
 Game.prototype.render = function() {
   ctx.font = "25px Alien Encounters";
-  ctx.fillText("Life: ", 5, 30);
+  ctx.fillText("Life: ", 5, 25);
   for (var heart = 0; heart < this.lifesMax; heart++) {
     if (this.lifesMax - this.lifes > heart) {
       ctx.drawImage(Resources.get(this.lifeLostSprite), heart * 30 + 70, 5);
@@ -182,25 +220,6 @@ Game.prototype.render = function() {
     }
   }
   ctx.fillText("Points: " + String(this.points).padStart(7, "0"), 300, 30);
-}
-
-var Rock = function() {
-  this.sprite = 'images/Rock.png';
-  this.generate();
-};
-
-Rock.prototype.generate = function() {
-  this.visible = Math.random() >= 0.5;
-  this.col = Math.floor(Math.random() * 4) + 0;
-  this.row = Math.floor(Math.random() * 3) + 1;
-};
-
-Rock.prototype.render = function() {
-  ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
-};
-
-function render() {
-  ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
 }
 
 // Now instantiate your objects.

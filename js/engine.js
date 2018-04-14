@@ -154,6 +154,7 @@ var Engine = (function(global) {
     });
 
     player.render();
+    rock.render();
     game.render();
   }
 
@@ -176,7 +177,8 @@ var Engine = (function(global) {
     'images/enemy-bug.png',
     'images/char-boy.png',
     'images/Life.png',
-    'images/LifeLost.png'
+    'images/LifeLost.png',
+    'images/Rock.png'
   ]);
   Resources.onReady(init);
 
