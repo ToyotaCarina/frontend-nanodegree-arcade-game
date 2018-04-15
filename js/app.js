@@ -6,7 +6,7 @@ const
   playerInitPos = [2, 5];
 
 // All objects in game is a game element. All common properties and
-// functions are here
+// functions for objects are here
 var GameElement = function(sprite) {
   // The image/sprite for our enemies, this uses
   // a helper we've provided to easily load images
@@ -39,7 +39,7 @@ var GameElementBlockType = function(sprite, col, row) {
 GameElementBlockType.prototype = Object.create(GameElement.prototype);
 GameElementBlockType.prototype.constructor = GameElementBlockType;
 
-// X coordinate calculated based on column number
+// X coordinate calculates based on column number
 Object.defineProperty(GameElementBlockType.prototype, 'x', {
   get: function() {
     return this.col * sectionX;
@@ -66,7 +66,6 @@ Enemy.prototype.update = function(dt) {
   // which will ensure the game runs at the same speed for
   // all computers.
   this.x += this.speed * dt;
-  this.checkCollision();
   if (this.isEndOfField()) {
     this.moveToStart();
   }
@@ -82,18 +81,6 @@ Enemy.prototype.randomizePosition = function() {
   this.row = Math.floor(Math.random() * 3) + 1;
 };
 
-// Checks collition with player
-Enemy.prototype.isCollided = function() {
-  return (this.row === player.row) && (player.x - 25 < this.x + sectionX / 2) &&
-    (player.x + 5 > this.x - sectionX / 2);
-};
-
-Enemy.prototype.checkCollision = function() {
-  if (this.isCollided()) {
-    player.lifeLoss();
-  }
-};
-
 Enemy.prototype.isEndOfField = function() {
   return this.x > sectionY * (numCols + 1);
 };
@@ -105,8 +92,7 @@ Enemy.prototype.moveToStart = function() {
 };
 
 // Now write your own player class
-// This class requires an update(), render() and
-// a handleInput() method.
+// This class requires an update(), render() method.
 var Player = function() {
   // Player is a block type game element
   GameElementBlockType.call(this, 'images/char-boy.png');
@@ -121,7 +107,7 @@ Player.prototype = Object.create(GameElementBlockType.prototype);
 Player.prototype.constructor = Player;
 
 Player.prototype.update = function(dt) {
-
+  // noop
 };
 
 Player.prototype.render = function() {
@@ -143,16 +129,6 @@ Player.prototype.renderLife = function() {
   }
 };
 
-Player.prototype.handleInput = function(direction) {
-  this.movePlayer(direction);
-  // If player came to water game continues with new "level"
-  if (this.row === 0) {
-    this.resetPlayerPosition();
-    game.addPoints(100);
-    rock.generate();
-  }
-};
-
 Player.prototype.reset = function() {
   this.lifes = this.lifesMax;
   this.resetPlayerPosition();
@@ -163,33 +139,17 @@ Player.prototype.resetPlayerPosition = function() {
   this.row = playerInitPos[1];
 }
 
-// Player can't go place where rock is located
-Player.prototype.rockCollision = function(col, row) {
-  return (rock.visible) && (rock.row === row) && (rock.col === col);
-}
-
-Player.prototype.movePlayer = function(direction) {
-  switch (direction) {
-    case 'left':
-      if (this.col > 0 && !(this.rockCollision(this.col - 1, this.row))) {
-        this.col -= 1;
-      }
-      break;
-    case 'right':
-      if (this.col < numCols - 1 && !(this.rockCollision(this.col + 1, this.row))) {
-        this.col += 1;
-      }
-      break;
-    case 'up':
-      if (this.row > 0 && !(this.rockCollision(this.col, this.row - 1))) {
-        this.row -= 1;
-      }
-      break;
-    case 'down':
-      if (this.row < numCols && !(this.rockCollision(this.col, this.row + 1))) {
-        this.row += 1;
-      }
-      break;
+Player.prototype.nextPosition = function(direction) {
+  if (direction === 'left' && this.col > 0) {
+    return [this.row, this.col - 1];
+  } else if (direction === 'right' && this.col < numCols - 1) {
+    return [this.row, this.col + 1];
+  } else if (direction === 'up' && this.row > 0) {
+    return [this.row - 1, this.col];
+  } else if (direction === 'down' && this.row < numCols) {
+    return [this.row + 1, this.col];
+  } else {
+    return [this.row, this.col];
   }
 }
 
@@ -198,9 +158,6 @@ Player.prototype.lifeLoss = function() {
     this.lifes--;
   }
   this.resetPlayerPosition();
-  if (this.lifes === 0) {
-    game.gameOver();
-  }
 };
 
 
@@ -212,7 +169,7 @@ var Rock = function() {
 Rock.prototype = Object.create(GameElementBlockType.prototype);
 Rock.prototype.constructor = Rock;
 
-// Rock generates randomly on 1st row sometimes
+// Rock generates randomly on 1st row, sometimes
 Rock.prototype.generate = function() {
   this.visible = Math.random() >= 0.5;
   this.col = Math.floor(Math.random() * 4) + 0;
@@ -225,16 +182,27 @@ Rock.prototype.render = function() {
   }
 };
 
+// Game elements are wrapped in Game class
+// Though is that game consists of game elements (game objects), such as
+// player, enemies, rocks. Also a game has a property like points and status
 var Game = function() {
+  // Place all enemy objects in an array called allEnemies
+  // Place the player object in a variable called player
+  this.enemyBob = new Enemy();
+  this.enemyMatilda = new Enemy();
+  this.enemyFrank = new Enemy();
+  this.allEnemies = [this.enemyBob, this.enemyMatilda, this.enemyFrank];
+  this.player = new Player();
+  this.rock = new Rock();
   this.resetGame();
 };
 
 Game.prototype.resetGame = function() {
   this.status = 'start';
   this.points = 0;
-  rock.generate();
-  player.reset();
-  allEnemies.forEach(function(enemy) {
+  this.rock.generate();
+  this.player.reset();
+  this.allEnemies.forEach(function(enemy) {
     enemy.moveToStart();
   });
 };
@@ -252,19 +220,89 @@ Game.prototype.gameOver = function() {
 };
 
 Game.prototype.render = function() {
+  /* Loop through all of the objects within the allEnemies array and call
+   * the render function you have defined.
+   */
+  this.allEnemies.forEach(function(enemy) {
+    enemy.render();
+  });
+  this.player.render();
+  this.rock.render();
+  this.renderPoints();
+}
+
+Game.prototype.renderPoints = function() {
   ctx.font = "25px Alien Encounters";
   ctx.fillText("Points: " + String(this.points).padStart(7, "0"), 300, 30);
 }
 
+/* This is called by the update function and loops through all of the
+ * objects within your allEnemies array as defined in app.js and calls
+ * their update() methods. It will then call the update function for your
+ * player object. These update methods should focus purely on updating
+ * the data/properties related to the object. Do your drawing in your
+ * render methods.
+ */
+Game.prototype.update = function(dt) {
+  var self = this;
+  this.allEnemies.forEach(function(enemy) {
+    enemy.update(dt);
+    this.enemyPlayerCollision(enemy);
+  }.bind(this));
+  this.player.update();
+}
+
+Game.prototype.handleInput = function(direction) {
+  if (direction && this.status === 'start') {
+    var playerObj = this.player;
+    var playerNewPos = playerObj.nextPosition(direction);
+    var playerNewRow = playerNewPos[0];
+    var playerNewCol = playerNewPos[1];
+    if (!this.rockPlayerCollision(playerNewRow, playerNewCol)) {
+      playerObj.row = playerNewRow;
+      playerObj.col = playerNewCol;
+    }
+    // If player came to water game continues with new "level"
+    if (playerObj.row === 0) {
+      this.newLevel();
+    }
+  }
+};
+
+Game.prototype.newLevel = function() {
+  this.player.resetPlayerPosition();
+  this.addPoints(100);
+  // Place rock on a new random place
+  this.rock.generate();
+}
+
+
+// Player can't go place where rock is located
+Game.prototype.rockPlayerCollision = function(playerNewRow, playerNewCol) {
+  var rockObj = this.rock;
+  return (rockObj.visible) && (rockObj.row === playerNewRow) && (rockObj.col ===
+    playerNewCol);
+}
+
+// Checks collition with player
+Game.prototype.isCollided = function(enemyObj) {
+  var playerObj = this.player;
+  return (enemyObj.row === playerObj.row) && (playerObj.x - 25 < enemyObj.x +
+    sectionX / 2) && (playerObj.x + 5 > enemyObj.x - sectionX / 2);
+};
+
+Game.prototype.enemyPlayerCollision = function(enemyObj) {
+  var playeObj = this.player;
+  if (this.isCollided(enemyObj)) {
+    playeObj.lifeLoss();
+    if (playeObj.lifes === 0) {
+      this.gameOver();
+    }
+  }
+};
+
+
 // Now instantiate your objects.
-// Place all enemy objects in an array called allEnemies
-// Place the player object in a variable called player
-var enemyBob = new Enemy();
-var enemyMatilda = new Enemy();
-var enemyFrank = new Enemy();
-var allEnemies = [enemyBob, enemyMatilda, enemyFrank];
-var player = new Player();
-var rock = new Rock();
 var game = new Game();
 
 // This listens for key presses and sends the keys to your
@@ -277,7 +315,9 @@ document.addEventListener('keyup', function(e) {
     40: 'down'
   };
 
-  player.handleInput(allowedKeys[e.keyCode]);
+  // Hanlde input goes to game object, not player,
+  // to make possible to compare rock and player coordinated
+  game.handleInput(allowedKeys[e.keyCode]);
 });
 
 // Fills modal form with points
