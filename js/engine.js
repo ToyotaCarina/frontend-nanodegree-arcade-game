@@ -28,6 +28,20 @@ var Engine = (function(global) {
   canvas.height = 606;
   doc.body.appendChild(canvas);
 
+
+  /* This function handles game status to pause animation
+   * When player loses all lifes and modal form apeears, animaton pauses
+   */
+  function start() {
+    if (game.status === 'start') {
+      main();
+    }
+    /* Use the browser's requestAnimationFrame function to call this
+     * function again as soon as the browser is able to draw another frame.
+     */
+    win.requestAnimationFrame(start);
+  }
+
   /* This function serves as the kickoff point for the game loop itself
    * and handles properly calling the update and render methods.
    */
@@ -51,11 +65,6 @@ var Engine = (function(global) {
      * for the next time this function is called.
      */
     lastTime = now;
-
-    /* Use the browser's requestAnimationFrame function to call this
-     * function again as soon as the browser is able to draw another frame.
-     */
-    win.requestAnimationFrame(main);
   }
 
   /* This function does some initial setup that should only occur once,
@@ -65,7 +74,7 @@ var Engine = (function(global) {
   function init() {
     reset();
     lastTime = Date.now();
-    main();
+    start();
   }
 
   /* This function is called by main (our game loop) and itself calls all
@@ -164,6 +173,10 @@ var Engine = (function(global) {
    */
   function reset() {
     // noop
+    // console.log('reset');
+    // if (game.isOver) {
+    //   window.cancelAnimationFrame(main);
+    // }
   }
 
   /* Go ahead and load all of the images we know we're going to need to
