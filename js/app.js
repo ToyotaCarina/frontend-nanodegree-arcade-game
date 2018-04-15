@@ -5,49 +5,60 @@ const
   sectionX = 101,
   playerInitPos = [2, 5];
 
-// All objects in game is a game element. All common properties and
-// functions for objects are here
-var GameElement = function(sprite) {
-  // The image/sprite for our enemies, this uses
-  // a helper we've provided to easily load images
+/**
+ * @description Represents a game element (game object)
+ * @constructor
+ * @param {string} sprite - The image/sprite of element.
+ */
+function GameElement(sprite) {
   this.sprite = sprite;
 }
 
-// Draw the element on the screen, required method for game
+/**
+ * @description Draws the element on the screen, required method for game.
+ */
 GameElement.prototype.render = function() {
   ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
 };
 
-// All elements in game are row based,
-// what means that they are located on a spesific row, and have a row property
-// Based on row number Y coordinate can be calculated
+/**
+ * All elements in game are row based,
+ * what means that they are located on a spesific row, and have a row property
+ * Based on row number Y coordinate can be calculated
+ */
 Object.defineProperty(GameElement.prototype, 'y', {
   get: function() {
     return (this.row - 0.5) * sectionY;
   }
 });
 
-// Class for elements that are "block based", such as rock, player.
-// Position of these elements based on row and column.
-// GameElementBlockType inherties from GameElementBlockType
-var GameElementBlockType = function(sprite, col, row) {
+/**
+ * @description Represents a game elements, position of those bases on row and column
+ * @constructor
+ * @param {string} sprite - The image/sprite of element.
+ */
+function GameElementBlockType(sprite) {
   GameElement.call(this, sprite);
-  this.col = col;
-  this.row = row;
 }
 
 GameElementBlockType.prototype = Object.create(GameElement.prototype);
 GameElementBlockType.prototype.constructor = GameElementBlockType;
 
-// X coordinate calculates based on column number
+/**
+ * @description X coordinate calculates based on column number
+ * @returns {number} Multiplication of column number and section width
+ */
 Object.defineProperty(GameElementBlockType.prototype, 'x', {
   get: function() {
     return this.col * sectionX;
   }
 });
 
-// Enemies our player must avoid
-var Enemy = function() {
+/**
+ * @description Enemies our player must avoid
+ * @constructor
+ */
+function Enemy() {
   GameElement.call(this, 'images/enemy-bug.png');
   this.startPosX = sectionY * -1;
   this.x = this.startPosX;
@@ -55,45 +66,57 @@ var Enemy = function() {
   this.randomizeSpeed();
 };
 
-// Enemy.prototype = GameElement;
 Enemy.prototype = Object.create(GameElement.prototype);
 Enemy.prototype.constructor = Enemy;
 
-// Update the enemy's position, required method for game
-// Parameter: dt, a time delta between ticks
+/**
+ * @description Update the enemy's position, required method for game
+ * @param {number} dt - time delta between ticks
+ */
 Enemy.prototype.update = function(dt) {
-  // You should multiply any movement by the dt parameter
-  // which will ensure the game runs at the same speed for
-  // all computers.
   this.x += this.speed * dt;
   if (this.isEndOfField()) {
     this.moveToStart();
   }
 };
 
+/**
+ * @description Sets speed of enemy object to a random number from 100 to 450
+ */
 Enemy.prototype.randomizeSpeed = function() {
-  // Enemy speed is a random number from 100 to 450
   this.speed = Math.floor(Math.random() * 450) + 100;
 };
 
+/**
+ * @description Sets row position of enemy object to a random number from 1 to 3
+ */
 Enemy.prototype.randomizePosition = function() {
   // Enemy position (row they appear on) is a random number
   this.row = Math.floor(Math.random() * 3) + 1;
 };
 
+/**
+ * @description Checks if enemy object is located outside the last section
+ * @returns {bool} True if x coordinate is outside last section
+ */
 Enemy.prototype.isEndOfField = function() {
   return this.x > sectionY * (numCols + 1);
 };
 
+/**
+ * @description Returns enemy object to start with a new speed and row position
+ */
 Enemy.prototype.moveToStart = function() {
   this.randomizeSpeed();
   this.randomizePosition();
   this.x = this.startPosX;
 };
 
-// Now write your own player class
-// This class requires an update(), render() method.
-var Player = function() {
+/**
+ * @description Represents a player
+ * @constructor
+ */
+function Player() {
   // Player is a block type game element
   GameElementBlockType.call(this, 'images/char-boy.png');
   // Player has a life property
@@ -110,12 +133,17 @@ Player.prototype.update = function(dt) {
   // noop
 };
 
+/**
+ * @description Draws the element on the screen, required method for game.
+ */
 Player.prototype.render = function() {
   GameElementBlockType.prototype.render.call(this);
   this.renderLife();
 };
 
-// Displays player life of a convas
+/**
+ * @description Displays player life of a convas
+ */
 Player.prototype.renderLife = function() {
   GameElementBlockType.prototype.render.call(this);
   ctx.font = "25px Alien Encounters";
@@ -129,16 +157,27 @@ Player.prototype.renderLife = function() {
   }
 };
 
+/**
+ * @description Resets player for a new game
+ */
 Player.prototype.reset = function() {
   this.lifes = this.lifesMax;
   this.resetPlayerPosition();
 }
 
+/**
+ * @description Sets player position to a default
+ */
 Player.prototype.resetPlayerPosition = function() {
   this.col = playerInitPos[0];
   this.row = playerInitPos[1];
 }
 
+/**
+ * @description Calculates a new postion of a player object
+ * @param {string} direction - Direction of player move
+ * @returns {array} New poistion of player(row and column)
+ */
 Player.prototype.nextPosition = function(direction) {
   if (direction === 'left' && this.col > 0) {
     return [this.row, this.col - 1];
@@ -153,6 +192,9 @@ Player.prototype.nextPosition = function(direction) {
   }
 }
 
+/**
+ * @description Player object moves to default place when life loses
+ */
 Player.prototype.lifeLoss = function() {
   if (this.lifes > 0) {
     this.lifes--;
@@ -160,8 +202,11 @@ Player.prototype.lifeLoss = function() {
   this.resetPlayerPosition();
 };
 
-
-var Rock = function() {
+/**
+ * @description Represents a rock
+ * @constructor
+ */
+function Rock() {
   GameElementBlockType.call(this, 'images/Rock.png');
   this.generate();
 };
@@ -169,25 +214,33 @@ var Rock = function() {
 Rock.prototype = Object.create(GameElementBlockType.prototype);
 Rock.prototype.constructor = Rock;
 
-// Rock generates randomly on 1st row, sometimes
+/**
+ * @description Rock generates randomly on 1st row
+ */
 Rock.prototype.generate = function() {
   this.visible = Math.random() >= 0.5;
   this.col = Math.floor(Math.random() * 4) + 0;
   this.row = 0;
 };
 
+/**
+ * @description Draws the element on the screen, required method for game
+ */
 Rock.prototype.render = function() {
   if (this.visible) {
     GameElementBlockType.prototype.render.call(this);
   }
 };
 
-// Game elements are wrapped in Game class
-// Though is that game consists of game elements (game objects), such as
-// player, enemies, rocks. Also a game has a property like points and status
-var Game = function() {
-  // Place all enemy objects in an array called allEnemies
-  // Place the player object in a variable called player
+
+/**
+ * @description Represents a game
+ * @constructor
+ */
+function Game() {
+  // Game elements are wrapped in Game class
+  // Though is that game consists of game elements (game objects), such as
+  // player, enemies, rocks. Also a game has a property like points and status
   this.enemyBob = new Enemy();
   this.enemyMatilda = new Enemy();
   this.enemyFrank = new Enemy();
@@ -197,6 +250,9 @@ var Game = function() {
   this.resetGame();
 };
 
+/**
+ * @description Sets a game to a start condition
+ */
 Game.prototype.resetGame = function() {
   this.status = 'start';
   this.points = 0;
@@ -207,6 +263,9 @@ Game.prototype.resetGame = function() {
   });
 };
 
+/**
+ * @description Add points to a game. 9999999 is a maximum
+ */
 Game.prototype.addPoints = function(pointValue) {
   this.points += pointValue;
   if (this.points > 9999999) {
@@ -214,15 +273,18 @@ Game.prototype.addPoints = function(pointValue) {
   }
 };
 
+/**
+ * @description Pause animation and shows modal form
+ */
 Game.prototype.gameOver = function() {
   this.status = 'stop';
   $('#gameOverModal').modal('show');
 };
 
+/**
+ * @description Draws all elements on the screen
+ */
 Game.prototype.render = function() {
-  /* Loop through all of the objects within the allEnemies array and call
-   * the render function you have defined.
-   */
   this.allEnemies.forEach(function(enemy) {
     enemy.render();
   });
@@ -231,17 +293,17 @@ Game.prototype.render = function() {
   this.renderPoints();
 }
 
+/**
+ * @description Displays point number on a canvas
+ */
 Game.prototype.renderPoints = function() {
   ctx.font = "25px Alien Encounters";
   ctx.fillText("Points: " + String(this.points).padStart(7, "0"), 300, 30);
 }
 
-/* This is called by the update function and loops through all of the
- * objects within your allEnemies array as defined in app.js and calls
- * their update() methods. It will then call the update function for your
- * player object. These update methods should focus purely on updating
- * the data/properties related to the object. Do your drawing in your
- * render methods.
+/**
+ * @description Updating the data/properties related to the object
+ * @param {number} dt - time delta between ticks
  */
 Game.prototype.update = function(dt) {
   var self = this;
@@ -252,6 +314,10 @@ Game.prototype.update = function(dt) {
   this.player.update();
 }
 
+/**
+ * @description Moves a player according to direction
+ * @param {string} direction - direction of the movement
+ */
 Game.prototype.handleInput = function(direction) {
   if (direction && this.status === 'start') {
     var playerObj = this.player;
@@ -269,6 +335,9 @@ Game.prototype.handleInput = function(direction) {
   }
 };
 
+/**
+ * @description Prepares game for a new "level"
+ */
 Game.prototype.newLevel = function() {
   this.player.resetPlayerPosition();
   this.addPoints(100);
@@ -277,20 +346,35 @@ Game.prototype.newLevel = function() {
 }
 
 
-// Player can't go place where rock is located
+
+/**
+ * @description Checks if next player postiion is a rock position
+ * @param {number} playerNewRow - Next row position of a player
+ * @param {number} playerNewCol - Next column position of a player
+ * @returns {bool} True if next player postiion is a rock position
+ */
 Game.prototype.rockPlayerCollision = function(playerNewRow, playerNewCol) {
+  // Player can't go place where rock is located
   var rockObj = this.rock;
   return (rockObj.visible) && (rockObj.row === playerNewRow) && (rockObj.col ===
     playerNewCol);
 }
 
-// Checks collition with player
+/**
+ * @description Checks collision with player
+ * @param {number} enemyObj - Enemy object
+ * @returns {bool} True if player collide with enemy witin the interval
+ */
 Game.prototype.isCollided = function(enemyObj) {
   var playerObj = this.player;
   return (enemyObj.row === playerObj.row) && (playerObj.x - 25 < enemyObj.x +
     sectionX / 2) && (playerObj.x + 5 > enemyObj.x - sectionX / 2);
 };
 
+/**
+ * @description Handles collision of player and enemy
+ * @param {number} enemyObj - Enemy object
+ */
 Game.prototype.enemyPlayerCollision = function(enemyObj) {
   var playeObj = this.player;
   if (this.isCollided(enemyObj)) {
