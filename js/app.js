@@ -2,7 +2,8 @@ var numRows = 6,
   numCols = 5,
   sectionY = 83,
   sectionX = 101,
-  playerInitPos = [2, 5];
+  playerInitPos = [2, 5],
+  gemColors = ['Blue', 'Green', 'Orange'];
 
 /**
  * @description Represents a game element (game object)
@@ -128,9 +129,9 @@ function Player() {
 Player.prototype = Object.create(GameElementBlockType.prototype);
 Player.prototype.constructor = Player;
 
-Player.prototype.update = function(dt) {
-  // noop
-};
+// Player.prototype.update = function(dt) {
+//
+// };
 
 /**
  * @description Draws the element on the screen, required method for game.
@@ -231,6 +232,71 @@ Rock.prototype.render = function() {
   }
 };
 
+/**
+ * @description Represents a Gem
+ * @constructor
+ */
+function Gem(color) {
+  GameElementBlockType.call(this, 'images/Gem ' + color + '.png');
+  switch (color) {
+    case 'Blue':
+      this.points = 350;
+      break;
+    case 'Green':
+      this.points = 200;
+      break;
+    case 'Orange':
+      this.points = 150;
+      break;
+    default:
+      this.points = 0;
+  }
+  this.generate();
+}
+
+Gem.prototype = Object.create(GameElementBlockType.prototype);
+Gem.prototype.constructor = Gem;
+
+/**
+ * @description Gem generates randomly on a whole field
+ */
+Gem.prototype.generate = function() {
+  this.col = Math.floor(Math.random() * (numCols - 1)) + 0;
+  this.row = Math.floor(Math.random() * (numRows - 1)) + 0;
+};
+
+/**
+ * @description Represents a points label which apeears when player collects a gem
+ * @constructor
+ */
+function GemPointLabel(points, x, y) {
+  this.x = x;
+  this.y = y;
+  this.points = points;
+  this.origY = this.y;
+}
+
+/**
+ * @description Animates gem point label
+ */
+GemPointLabel.prototype.render = function() {
+  if (this.y !== 0) {
+    ctx.fillText(String(this.points), this.x + 25, this.y + 90);
+  }
+};
+
+/**
+ * @description Updating the data/properties related to the object
+ * @param {number} dt - time delta between ticks
+ */
+GemPointLabel.prototype.update = function(dt) {
+  if (this.y !== 0) {
+    this.y -= 65 * dt;
+    if (this.origY - this.y > 60) {
+      this.y = 0;
+    }
+  }
+};
 
 /**
  * @description Represents a game
@@ -246,6 +312,7 @@ function Game() {
   this.allEnemies = [this.enemyBob, this.enemyMatilda, this.enemyFrank];
   this.player = new Player();
   this.rock = new Rock();
+  this.gemPointLabel = new GemPointLabel(0, 0, 0);
   this.resetGame();
 }
 
@@ -256,10 +323,33 @@ Game.prototype.resetGame = function() {
   this.status = 'start';
   this.points = 0;
   this.rock.generate();
+  this.generateGems();
   this.player.reset();
   this.allEnemies.forEach(function(enemy) {
     enemy.moveToStart();
   });
+};
+
+/**
+ * @description Creates up to 3 gems per "level" of a random (Blue, Green or Orange) color
+ */
+Game.prototype.generateGems = function() {
+  this.allGems = [];
+  var rockObj = this.rock;
+  var playerObj = this.player;
+  var gemCount = Math.floor(Math.random() * 3) + 0;
+  for (var i = 0; i < gemCount; i++) {
+    var gemColor = gemColors[Math.floor(Math.random() * gemColors.length)];
+    var newGem = new Gem(gemColor);
+    // If position of a gem are the same as position of a player or a rock,
+    // position must be recalculated
+    if ((rockObj.visible && newGem.col === rockObj.col && newGem.row ===
+        rockObj.row) || (newGem.col === playerObj.col && newGem.row ===
+        playerObj.row)) {
+      newGem.generate();
+    }
+    this.allGems.push(newGem);
+  }
 };
 
 /**
@@ -284,12 +374,16 @@ Game.prototype.gameOver = function() {
  * @description Draws all elements on the screen
  */
 Game.prototype.render = function() {
+  this.rock.render();
+  this.allGems.forEach(function(gem) {
+    gem.render();
+  });
   this.allEnemies.forEach(function(enemy) {
     enemy.render();
   });
   this.player.render();
-  this.rock.render();
   this.renderPoints();
+  this.gemPointLabel.render();
 };
 
 /**
@@ -309,7 +403,13 @@ Game.prototype.update = function(dt) {
     enemy.update(dt);
     this.enemyPlayerCollision(enemy);
   }.bind(this));
-  this.player.update();
+  // this.player.update();
+  this.checkPlayerMeetsGem();
+  // If player came to water game continues with new "level"
+  if (this.player.row === 0) {
+    this.newLevel();
+  }
+  this.gemPointLabel.update(dt);
 };
 
 /**
@@ -326,10 +426,6 @@ Game.prototype.handleInput = function(direction) {
       playerObj.row = playerNewRow;
       playerObj.col = playerNewCol;
     }
-    // If player came to water game continues with new "level"
-    if (playerObj.row === 0) {
-      this.newLevel();
-    }
   }
 };
 
@@ -341,9 +437,8 @@ Game.prototype.newLevel = function() {
   this.addPoints(100);
   // Place rock on a new random place
   this.rock.generate();
+  this.generateGems();
 };
-
-
 
 /**
  * @description Checks if next player postiion is a rock position
@@ -374,15 +469,29 @@ Game.prototype.isCollided = function(enemyObj) {
  * @param {number} enemyObj - Enemy object
  */
 Game.prototype.enemyPlayerCollision = function(enemyObj) {
-  var playeObj = this.player;
+  var playerObj = this.player;
   if (this.isCollided(enemyObj)) {
-    playeObj.lifeLoss();
-    if (playeObj.lifes === 0) {
+    playerObj.lifeLoss();
+    if (playerObj.lifes === 0) {
       this.gameOver();
     }
   }
 };
 
+/**
+ * @description Check if player meet gem
+ */
+Game.prototype.checkPlayerMeetsGem = function() {
+  var playerObj = this.player;
+  for (var i = 0; i < this.allGems.length; i++) {
+    var gem = this.allGems[i];
+    if (gem.col === playerObj.col && gem.row === playerObj.row) {
+      this.addPoints(gem.points);
+      this.gemPointLabel = new GemPointLabel(gem.points, gem.x, gem.y);
+      this.allGems.splice(i, 1);
+    }
+  }
+};
 
 // Now instantiate your objects.
 var game = new Game();
