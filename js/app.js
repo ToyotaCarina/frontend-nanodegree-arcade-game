@@ -129,10 +129,6 @@ function Player() {
 Player.prototype = Object.create(GameElementBlockType.prototype);
 Player.prototype.constructor = Player;
 
-// Player.prototype.update = function(dt) {
-//
-// };
-
 /**
  * @description Draws the element on the screen, required method for game.
  */
@@ -286,7 +282,7 @@ GemPointLabel.prototype.render = function() {
 };
 
 /**
- * @description Updating the data/properties related to the object
+ * @description Updating the label position to create a short animation
  * @param {number} dt - time delta between ticks
  */
 GemPointLabel.prototype.update = function(dt) {
@@ -403,7 +399,6 @@ Game.prototype.update = function(dt) {
     enemy.update(dt);
     this.enemyPlayerCollision(enemy);
   }.bind(this));
-  // this.player.update();
   this.checkPlayerMeetsGem();
   // If player came to water game continues with new "level"
   if (this.player.row === 0) {
