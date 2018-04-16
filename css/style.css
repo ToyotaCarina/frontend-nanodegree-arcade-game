@@ -1,6 +1,11 @@
+@font-face {
+font-family: "AlienEncounters";
+src: url("fonts/Alien-Encounters-Regular.ttf") format("truetype");
+}
+
 body {
     text-align: center;
-    font-family: 'Alien Encounters';
+    font-family: 'AlienEncounters';
 }
 
 .card-text {

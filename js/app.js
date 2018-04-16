@@ -1,5 +1,4 @@
-const
-  numRows = 6,
+var numRows = 6,
   numCols = 5,
   sectionY = 83,
   sectionX = 101,
@@ -64,7 +63,7 @@ function Enemy() {
   this.x = this.startPosX;
   this.randomizePosition();
   this.randomizeSpeed();
-};
+}
 
 Enemy.prototype = Object.create(GameElement.prototype);
 Enemy.prototype.constructor = Enemy;
@@ -124,7 +123,7 @@ function Player() {
   this.lifeSprite = 'images/Life.png';
   this.lifeLostSprite = 'images/LifeLost.png';
   this.reset();
-};
+}
 
 Player.prototype = Object.create(GameElementBlockType.prototype);
 Player.prototype.constructor = Player;
@@ -146,7 +145,7 @@ Player.prototype.render = function() {
  */
 Player.prototype.renderLife = function() {
   GameElementBlockType.prototype.render.call(this);
-  ctx.font = "25px Alien Encounters";
+  ctx.font = "25px AlienEncounters";
   ctx.fillText("Life: ", 5, 30);
   for (var heart = 0; heart < this.lifesMax; heart++) {
     if (this.lifesMax - this.lifes > heart) {
@@ -163,7 +162,7 @@ Player.prototype.renderLife = function() {
 Player.prototype.reset = function() {
   this.lifes = this.lifesMax;
   this.resetPlayerPosition();
-}
+};
 
 /**
  * @description Sets player position to a default
@@ -171,7 +170,7 @@ Player.prototype.reset = function() {
 Player.prototype.resetPlayerPosition = function() {
   this.col = playerInitPos[0];
   this.row = playerInitPos[1];
-}
+};
 
 /**
  * @description Calculates a new postion of a player object
@@ -185,12 +184,12 @@ Player.prototype.nextPosition = function(direction) {
     return [this.row, this.col + 1];
   } else if (direction === 'up' && this.row > 0) {
     return [this.row - 1, this.col];
-  } else if (direction === 'down' && this.row < numCols) {
+  } else if (direction === 'down' && this.row < numRows - 1) {
     return [this.row + 1, this.col];
   } else {
     return [this.row, this.col];
   }
-}
+};
 
 /**
  * @description Player object moves to default place when life loses
@@ -209,7 +208,7 @@ Player.prototype.lifeLoss = function() {
 function Rock() {
   GameElementBlockType.call(this, 'images/Rock.png');
   this.generate();
-};
+}
 
 Rock.prototype = Object.create(GameElementBlockType.prototype);
 Rock.prototype.constructor = Rock;
@@ -248,7 +247,7 @@ function Game() {
   this.player = new Player();
   this.rock = new Rock();
   this.resetGame();
-};
+}
 
 /**
  * @description Sets a game to a start condition
@@ -291,28 +290,27 @@ Game.prototype.render = function() {
   this.player.render();
   this.rock.render();
   this.renderPoints();
-}
+};
 
 /**
  * @description Displays point number on a canvas
  */
 Game.prototype.renderPoints = function() {
-  ctx.font = "25px Alien Encounters";
+  ctx.font = "25px AlienEncounters";
   ctx.fillText("Points: " + String(this.points).padStart(7, "0"), 300, 30);
-}
+};
 
 /**
  * @description Updating the data/properties related to the object
  * @param {number} dt - time delta between ticks
  */
 Game.prototype.update = function(dt) {
-  var self = this;
   this.allEnemies.forEach(function(enemy) {
     enemy.update(dt);
     this.enemyPlayerCollision(enemy);
   }.bind(this));
   this.player.update();
-}
+};
 
 /**
  * @description Moves a player according to direction
@@ -343,7 +341,7 @@ Game.prototype.newLevel = function() {
   this.addPoints(100);
   // Place rock on a new random place
   this.rock.generate();
-}
+};
 
 
 
@@ -358,7 +356,7 @@ Game.prototype.rockPlayerCollision = function(playerNewRow, playerNewCol) {
   var rockObj = this.rock;
   return (rockObj.visible) && (rockObj.row === playerNewRow) && (rockObj.col ===
     playerNewCol);
-}
+};
 
 /**
  * @description Checks collision with player
@@ -406,9 +404,9 @@ document.addEventListener('keyup', function(e) {
 
 // Fills modal form with points
 $('#gameOverModal').on('show.bs.modal', function(event) {
-  const modal = $(this);
+  var modal = $(this);
   modal.find('#game-points').text('Your score: ' + game.points);
-})
+});
 
 // Restarts the game
 $('.restart').on('click', function() {
